@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0d1a12">
+<title>Snooker Scorer</title>
+<style>
+:root{--bg:#0d1a12;--card:#1c2a22;--card2:#14221a;--line:#2e4034;--gold:#f0d37a;--ink:#10200f;--mute:#8fa597;--txt:#f4f7f2}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:radial-gradient(120% 80% at 50% 0,#173022,var(--bg) 60%) fixed;color:var(--txt);font:16px/1.3 -apple-system,"SF Pro Rounded",system-ui,"Segoe UI",Roboto,sans-serif}
+body{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));user-select:none;-webkit-user-select:none}
+button{font:inherit;color:inherit;border:1px solid var(--line);background:#2b3a31;border-radius:16px;min-height:48px;padding:0 14px;cursor:pointer;touch-action:manipulation;font-weight:700}
+button:active{transform:scale(.97)}
+button:disabled{opacity:.35;pointer-events:none}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:12px}
+.bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:var(--card);border:1px solid var(--line);border-radius:26px}
+.bar .n{min-width:56px}
+.on{background:var(--gold)!important;color:var(--ink)!important;border-color:var(--gold)!important}
+.bar .sp{flex:1}
+.cols{display:grid;gap:12px}
+@media(min-width:820px){.cols{grid-template-columns:1.05fr 1fr;align-items:start}}
+.players{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pl{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:14px;cursor:pointer;transition:background .15s}
+.pl.act{background:var(--gold);color:var(--ink);border-color:var(--gold)}
+.top{display:flex;align-items:center;gap:8px}
+.av{width:34px;height:34px;border-radius:50%;background:#0f1d15;display:grid;place-items:center;flex:none}
+.act .av{background:#6b6a3c}
+.av svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
+.nm{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px dashed transparent;color:inherit;font:700 20px/1.2 inherit;padding:4px 0;border-radius:0;user-select:text;-webkit-user-select:text}
+.nm:focus{border-bottom-color:currentColor;outline:none}
+.row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
+.score{font-size:clamp(48px,9vw,76px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+.chip{background:#2a3b30;color:var(--gold);border-radius:999px;padding:8px 12px;font-weight:700;white-space:nowrap}
+.act .chip{background:#c9b468;color:var(--ink)}
+.brk{display:flex;justify-content:space-between;color:var(--mute);font-weight:600}
+.act .brk{color:#5a5a33}
+.brk b{color:var(--gold)}.act .brk b{color:var(--ink)}
+.track{display:flex;height:16px;border-radius:9px;background:#3a4a41;overflow:hidden;margin:8px 0 10px;min-width:0}
+.act .track{background:#c9b468}
+.track i{flex:1 1 0;max-width:20px;min-width:3px;border-right:1px solid rgba(0,0,0,.35)}
+.btns{display:grid;grid-template-columns:56px 1fr;gap:8px}
+.act .btns button{background:#d1bd72;color:var(--ink);border-color:#bfa95f}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.st{background:var(--card2);border-radius:20px;padding:12px;min-width:0}
+.st small{display:block;color:var(--mute);font-weight:700;font-size:12px;letter-spacing:.06em;margin:6px 0 4px;text-transform:uppercase}
+.st b{font-size:clamp(18px,3.4vw,26px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.st svg{width:26px;height:26px;fill:none;stroke-width:2}
+.last{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--card);border-radius:22px;padding:14px 16px;cursor:pointer}
+.last small{color:var(--mute);font-weight:700;display:block;margin-bottom:4px}
+.last span{font-size:18px;font-weight:700}
+h2{margin:6px 4px;font-size:22px}
+.sub{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px}
+.sub .seg{display:flex;gap:8px}
+.sub .seg button{min-width:104px}
+.top3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:8px}
+.top3 button{min-height:84px;text-align:left;padding:10px 14px;border-radius:22px;line-height:1.2}
+.top3 small{display:block;font-weight:500;opacity:.8;margin-top:4px}
+.bred{background:#ab2d27;border-color:#ab2d27}
+.boff{background:#6a1d19;border-color:#7d2a25}
+.bfree{background:#33503f}
+.cg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+.cg button{min-height:100px;text-align:left;border-radius:24px;padding:12px 14px;border:0}
+.cg b{display:block;font-size:32px;margin:4px 0}
+.cg small{font-weight:700;opacity:.85}
+.fg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
+.fg button{min-height:82px;background:var(--card);border-radius:22px}
+.fg b{display:block;font-size:30px;color:var(--gold)}
+.tracker{background:var(--card2);border-radius:26px;padding:18px;margin-top:10px}
+.tracker p{margin:6px 0 12px;font-size:17px;color:#d6e0d8}
+.pills{display:flex;gap:8px}.pills i{flex:1;height:22px;border-radius:12px}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:grid;place-items:center;padding:16px;z-index:9}#ov[hidden]{display:none}.box{background:var(--card);border:1px solid var(--line);border-radius:24px;max-width:460px;width:100%;padding:18px}.acts{display:flex;gap:8px}.acts button{flex:1}
+dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:24px;max-width:460px;width:calc(100% - 32px);padding:18px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+#ov li{padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
+#ov ul{list-style:none;padding:0;margin:10px 0 14px;max-height:50vh;overflow:auto}
+@media(max-width:520px){.cg button{min-height:88px}.cg b{font-size:28px}.pl{padding:10px;border-radius:22px}.nm{font-size:17px}.chip{padding:6px 8px;font-size:14px}.stats{grid-template-columns:repeat(2,1fr)}.top3{grid-template-columns:1fr 1fr}.top3 .bred{grid-column:1/-1;min-height:70px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <button class="n" data-r="6">6</button><button class="n" data-r="10">10</button><button class="n" data-r="15">15</button>
+    <button id="reset">Reset frame</button><span class="sp"></span><button id="newf" class="on">New frame</button>
+  </div>
+  <div class="cols">
+    <section style="display:grid;gap:12px">
+      <div class="players" id="players"></div>
+      <div class="stats">
+        <div class="st"><svg viewBox="0 0 24 24" stroke="#ab2d27"><circle cx="12" cy="12" r="8" fill="#ab2d27"/></svg><small>Reds left</small><b id="sRed"></b></div>
+        <div class="st"><svg viewBox="0 0 24 24" stroke="#8fd69a"><path d="M7 4h10v5a5 5 0 0 1-10 0zM12 14v4M8 20h8M7 6H4v2a3 3 0 0 0 3 3M17 6h3v2a3 3 0 0 1-3 3"/></svg><small>Leader</small><b id="sLead"></b></div>
+        <div class="st"><svg viewBox="0 0 24 24" stroke="#7fb0ff"><path d="M4 18h16l1-10-5 4-4-7-4 7-5-4z"/></svg><small>Lead</small><b id="sDiff"></b></div>
+        <div class="st"><svg viewBox="0 0 24 24" stroke="#f0a33a"><path d="M4 20l1-4L16 5l3 3L8 19zM4 22h8"/></svg><small>On table</small><b id="sTab"></b></div>
+      </div>
+      <div class="last" id="last"><div><small>Last action · tap for frame history</small><span id="lastT"></span></div><button id="undo">Undo</button></div>
+    </section>
+    <section>
+      <h2>Pots</h2>
+      <div class="top3">
+        <button class="bred" id="redOnly">Red only<small>Add 1 point when no colour follows</small></button>
+        <button class="boff" id="redOff">Take red off<small>Red drops during a foul</small></button>
+        <button class="bfree" id="free">Free ball<small>Counts as a red (+1)</small></button>
+      </div>
+      <div class="cg" id="cols"></div>
+      <div class="sub"><h2>Fouls</h2><div class="seg"><button id="ft0">Player 1</button><button id="ft1">Player 2</button></div></div>
+      <div class="fg" id="fouls"></div>
+      <div class="tracker"><h2 style="margin:0">Clearance tracker</h2><p id="trT"></p><div class="pills" id="pills"></div></div>
+    </section>
+  </div>
+</div>
+<div id="ov" hidden><div class="box"><h2 id="ovT" style="margin-top:0"></h2><div id="ovB"></div><div class="acts"><button id="ovNo">Cancel</button><button id="ovYes" class="on">OK</button></div></div></div>
+<script>
+const COL=[['Yellow','#efd670','#3a2f06'],['Green','#62b774','#0e2b15'],['Brown','#885d41','#fff'],['Blue','#4f83ee','#fff'],['Pink','#e283ac','#3d1230'],['Black','#121827','#fff']];
+const KEY='snooker-scorer-v1';
+const $=id=>document.getElementById(id);
+let S,U=[];
+function fresh(){return{reds:15,redsLeft:15,active:0,foulTo:1,cleared:0,pending:false,free:false,last:'New frame · 15 reds selected',hist:[],p:[{name:'Player 1',score:0,frames:0,brk:[]},{name:'Player 2',score:0,frames:0,brk:[]}]}}
+try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!S||!S.p)S=fresh();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function snap(){U.push(JSON.stringify(S));if(U.length>300)U.shift()}
+function done(t){S.last=t;save();render()}
+const nm=i=>S.p[i].name||('Player '+(i+1));
+function add(pts,balls){const P=S.p[S.active];P.score+=pts;P.brk.push(...balls)}
+function inClear(){return S.redsLeft===0&&!S.pending&&!S.free}
+function tableLeft(){
+  if(S.redsLeft>0)return S.redsLeft*8+27;
+  if(S.pending)return 27;
+  let t=0;for(let i=S.cleared;i<6;i++)t+=i+2;return t}
+function colour(i){
+  const v=i+2,n=COL[i][0];snap();
+  if(S.free){add(v,[i]);S.free=false;return done(nm(S.active)+' · free ball then '+n+' (+'+v+')')}
+  if(S.redsLeft>0){S.redsLeft--;add(v+1,['r',i]);return done(nm(S.active)+' · red + '+n+' (+'+(v+1)+')')}
+  if(S.pending){add(v,[i]);S.pending=false;return done(nm(S.active)+' · free colour '+n+' (+'+v+')')}
+  add(v,[i]);S.cleared=i+1;done(nm(S.active)+' · '+n+' (+'+v+')')}
+function redOnly(){if(S.redsLeft<1)return;snap();S.redsLeft--;add(1,['r']);if(S.redsLeft===0)S.pending=true;done(nm(S.active)+' · red only (+1)')}
+function redOff(){if(S.redsLeft<1)return;snap();S.redsLeft--;if(S.redsLeft===0)S.pending=true;done('Red taken off the table')}
+function freeBall(){snap();add(1,['r']);S.free=true;done(nm(S.active)+' · free ball (+1), now pick a colour')}
+function foul(v){snap();const to=S.foulTo,o=1-to;S.p[to].score+=v;S.p[o].brk=[];S.active=to;S.foulTo=o;S.free=false;done('Foul · '+v+' to '+nm(to))}
+function setActive(i){if(i===S.active)return;snap();S.p[S.active].brk=[];S.active=i;S.foulTo=1-i;S.free=false;done('Turn · '+nm(i)+' at the table')}
+function frames(i,d){const f=S.p[i].frames+d;if(f<0)return;snap();S.p[i].frames=f;done(nm(i)+' · frames '+f)}
+function reset(n){S.reds=n;S.redsLeft=n;S.active=0;S.foulTo=1;S.cleared=0;S.pending=false;S.free=false;S.p.forEach(p=>{p.score=0;p.brk=[]});U=[];S.last='New frame · '+n+' reds selected'}
+function dirty(){return S.p[0].score+S.p[1].score>0}
+function undo(){if(!U.length)return;const keep=S.p.map(p=>p.name);S=JSON.parse(U.pop());S.p.forEach((p,i)=>p.name=keep[i]);save();render()}
+
+function build(){
+  $('players').innerHTML=[0,1].map(i=>'<div class="pl" data-i="'+i+'"><div class="top"><span class="av"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 15-5 16 0"/></svg></span><input class="nm" aria-label="Player '+(i+1)+' name" maxlength="20" autocomplete="off" autocapitalize="words"></div><div class="row"><span class="score"></span><span class="chip"></span></div><div class="brk"><span>Current break</span><b></b></div><div class="track"></div><div class="btns"><button data-f="-1" aria-label="Remove a frame">−</button><button data-f="1">+ Frame</button></div></div>').join('');
+  document.querySelectorAll('.pl').forEach(el=>{
+    const i=+el.dataset.i,inp=el.querySelector('.nm');
+    el.addEventListener('click',e=>{if(e.target.closest('button')||e.target===inp)return;setActive(i)});
+    inp.addEventListener('focus',()=>{if(S.active!==i)setActive(i)});
+    inp.addEventListener('input',()=>{S.p[i].name=inp.value;save();text()});
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur()});
+    el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>frames(i,+b.dataset.f))});
+  $('fouls').innerHTML=[4,5,6,7].map(v=>'<button data-v="'+v+'"><b>+'+v+'</b>Foul</button>').join('');
+  $('fouls').onclick=e=>{const b=e.target.closest('button');if(b)foul(+b.dataset.v)};
+  $('cols').onclick=e=>{const b=e.target.closest('button');if(b)colour(+b.dataset.i)};
+  document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const n=+b.dataset.r;if(n===S.reds&&!dirty())return;const go=()=>{reset(n);save();render()};dirty()?ask('Change to '+n+' reds?','<p>This resets the current frame. Frame counts are kept.</p>','Change',go):go()});
+  $('reset').onclick=()=>{const go=()=>{reset(S.reds);save();render()};dirty()?ask('Reset this frame?','<p>Scores go back to 0. Frame counts are kept.</p>','Reset',go):go()};
+  $('newf').onclick=()=>{const go=()=>{if(dirty())S.hist.unshift({a:nm(0),b:nm(1),sa:S.p[0].score,sb:S.p[1].score});reset(S.reds);save();render()};dirty()?ask('Start a new frame?','<p>This frame ('+S.p[0].score+' – '+S.p[1].score+') is saved to history. Tap "+ Frame" first to credit the winner.</p>','New frame',go):go()};
+  $('undo').onclick=e=>{e.stopPropagation();undo()};
+  $('last').onclick=()=>{const h=S.hist.length?S.hist.map(h=>'<li><span>'+esc(h.a)+' v '+esc(h.b)+'</span><b>'+h.sa+' – '+h.sb+'</b></li>').join(''):'<li>No frames saved yet. Tap New frame to save one.</li>';ask('Frame history','<ul>'+h+'</ul>')};
+  $('redOnly').onclick=redOnly;$('redOff').onclick=redOff;$('free').onclick=freeBall;
+  $('ft0').onclick=()=>{S.foulTo=0;render()};$('ft1').onclick=()=>{S.foulTo=1;render()};
+}
+function ask(t,body,yes,cb){$('ovT').textContent=t;$('ovB').innerHTML=body;$('ovYes').hidden=!yes;$('ovYes').textContent=yes||'';$('ovNo').textContent=yes?'Cancel':'Close';$('ov').hidden=false;$('ovYes').onclick=()=>{$('ov').hidden=true;cb&&cb()};$('ovNo').onclick=()=>{$('ov').hidden=true}}
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function text(){
+  const a=S.p[0].score,b=S.p[1].score,d=Math.abs(a-b);
+  $('sLead').textContent=a===b?'Level':nm(a>b?0:1);$('sDiff').textContent=d;
+  $('sRed').textContent=S.redsLeft;$('sTab').textContent=tableLeft();
+  $('lastT').textContent=S.last;
+  $('trT').textContent='The remaining colours now total '+(S.redsLeft>0||S.pending?27:tableLeft())+' points.';
+}
+function render(){
+  document.querySelectorAll('.pl').forEach(el=>{
+    const i=+el.dataset.i,P=S.p[i],inp=el.querySelector('.nm');
+    el.classList.toggle('act',S.active===i);
+    if(document.activeElement!==inp)inp.value=P.name;
+    el.querySelector('.score').textContent=P.score;
+    el.querySelector('.chip').textContent='🏅 '+P.frames+(P.frames===1?' frame':' frames');
+    el.querySelector('.brk b').textContent=P.brk.reduce((t,x)=>t+(x==='r'?1:x+2),0);
+    el.querySelector('.track').innerHTML=P.brk.map(x=>'<i style="background:'+(x==='r'?'#ab2d27':COL[x][1])+'"></i>').join('')});
+  document.querySelectorAll('[data-r]').forEach(b=>b.classList.toggle('on',+b.dataset.r===S.reds));
+  $('ft0').classList.toggle('on',S.foulTo===0);$('ft1').classList.toggle('on',S.foulTo===1);
+  $('ft0').textContent=nm(0);$('ft1').textContent=nm(1);
+  const assumed=S.redsLeft>0&&!S.free;
+  $('cols').innerHTML=COL.map((c,i)=>{const off=inClear()&&i<S.cleared;const v=i+2+(assumed?1:0);
+    const lab=off?'Cleared':assumed?'Red assumed':S.pending?'Free colour':'True value';
+    return '<button data-i="'+i+'" style="background:'+c[1]+';color:'+c[2]+'"'+(off?' disabled':'')+'>'+c[0]+'<b>+'+v+'</b><small>'+lab+'</small></button>'}).join('');
+  $('pills').innerHTML=COL.map((c,i)=>'<i style="background:'+((S.redsLeft>0||S.pending||i>=S.cleared)?c[1]:'#2b3b31')+'"></i>').join('');
+  $('redOnly').disabled=$('redOff').disabled=S.redsLeft<1;
+  $('undo').disabled=!U.length;
+  text();
+}
+build();render();
+</script>
+</body>
+</html>
