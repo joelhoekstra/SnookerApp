@@ -102,7 +102,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <div class="top3">
         <button class="bred" id="redOnly">Red only<small>Add 1 point when no colour follows</small></button>
         <button class="boff" id="redOff">Take red off<small>Red drops during a foul</small></button>
-        <button class="bfree" id="free">Free ball<small>Counts as a red (+1)</small></button>
+        <button class="bfree" id="free">Free ball<small id="freeS"></small></button>
       </div>
       <div class="cg" id="cols"></div>
       <div class="sub"><h2>Fouls</h2><div class="seg"><button id="ft0">Player 1</button><button id="ft1">Player 2</button></div></div>
@@ -138,7 +138,7 @@ function colour(i){
   add(v,[i]);S.cleared=i+1;done(nm(S.active)+' · '+n+' (+'+v+')')}
 function redOnly(){if(S.redsLeft<1)return;snap();S.redsLeft--;add(1,['r']);if(S.redsLeft===0)S.pending=true;done(nm(S.active)+' · red only (+1)')}
 function redOff(){if(S.redsLeft<1)return;snap();S.redsLeft--;if(S.redsLeft===0)S.pending=true;done('Red taken off the table')}
-function freeBall(){snap();add(1,['r']);S.free=true;done(nm(S.active)+' · free ball (+1), now pick a colour')}
+function freeBall(){if(S.pending)return;if(inClear()){if(S.cleared>5)return;const k=S.cleared,v=k+2;snap();add(v,[k]);return done(nm(S.active)+' · free ball as '+COL[k][0]+' (+'+v+')')}snap();add(1,['r']);S.free=true;done(nm(S.active)+' · free ball (+1), now pick a colour')}
 function foul(v){snap();const to=S.foulTo,o=1-to;S.p[to].score+=v;S.p[o].brk=[];S.active=to;S.foulTo=o;S.free=false;done('Foul · '+v+' to '+nm(to))}
 function setActive(i){if(i===S.active)return;snap();S.p[S.active].brk=[];S.active=i;S.foulTo=1-i;S.free=false;done('Turn · '+nm(i)+' at the table')}
 function frames(i,d){const f=S.p[i].frames+d;if(f<0)return;snap();S.p[i].frames=f;done(nm(i)+' · frames '+f)}
@@ -193,6 +193,9 @@ function render(){
     return '<button data-i="'+i+'" style="background:'+c[1]+';color:'+c[2]+'"'+(off?' disabled':'')+'>'+c[0]+'<b>+'+v+'</b><small>'+lab+'</small></button>'}).join('');
   $('pills').innerHTML=COL.map((c,i)=>'<i style="background:'+((S.redsLeft>0||S.pending||i>=S.cleared)?c[1]:'#2b3b31')+'"></i>').join('');
   $('redOnly').disabled=$('redOff').disabled=S.redsLeft<1;
+  const clr=inClear();
+  $('free').disabled=S.pending||(clr&&S.cleared>5);
+  $('freeS').textContent=S.pending?'Use a colour button':clr?'Counts as the '+(S.cleared<6?COL[S.cleared][0].toLowerCase()+' (+'+(S.cleared+2)+')':'ball on'):'Counts as a red (+1)';
   $('undo').disabled=!U.length;
   text();
 }
