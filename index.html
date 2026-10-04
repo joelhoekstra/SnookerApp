@@ -68,9 +68,13 @@ h2{margin:6px 4px;font-size:22px}
 .fg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:8px}
 .fg button{min-height:82px;background:var(--card);border-radius:22px}
 .fg b{display:block;font-size:30px;color:var(--gold)}
-.tracker{background:var(--card2);border-radius:26px;padding:18px;margin-top:10px}
-.tracker p{margin:6px 0 12px;font-size:17px;color:#d6e0d8}
-.pills{display:flex;gap:8px}.pills i{flex:1;height:22px;border-radius:12px}
+#cam{position:fixed;inset:0;background:#000;z-index:10}#cam[hidden]{display:none}
+#cam video,#ghost{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#ghost{touch-action:none;transform-origin:center}
+#cmsg{position:absolute;top:max(14px,env(safe-area-inset-top));left:12px;right:12px;text-align:center;font-weight:700;text-shadow:0 1px 4px #000}
+#ctl{position:absolute;left:0;right:0;bottom:0;padding:14px max(12px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.8));display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
+#ctl label{flex:1 1 180px;display:flex;gap:8px;align-items:center;font-weight:700}#ctl input{flex:1;min-width:100px}
+.camrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.camrow button{min-height:56px;background:var(--card)}
 #ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:grid;place-items:center;padding:16px;z-index:9}#ov[hidden]{display:none}.box{background:var(--card);border:1px solid var(--line);border-radius:24px;max-width:460px;width:100%;padding:18px}.acts{display:flex;gap:8px}.acts button{flex:1}
 dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:24px;max-width:460px;width:calc(100% - 32px);padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.6)}
@@ -107,16 +111,19 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <div class="cg" id="cols"></div>
       <div class="sub"><h2>Fouls</h2><div class="seg"><button id="ft0">Player 1</button><button id="ft1">Player 2</button></div></div>
       <div class="fg" id="fouls"></div>
-      <div class="tracker"><h2 style="margin:0">Clearance tracker</h2><p id="trT"></p><div class="pills" id="pills"></div></div>
+      <div class="camrow"><button id="snap">📷 Snapshot</button><button id="ref">Replace balls</button><button id="delp">Delete photo</button></div>
     </section>
   </div>
 </div>
+<div id="cam" hidden><video id="vid" playsinline muted autoplay></video><img id="ghost" alt="Saved table photo" hidden><div id="cmsg"></div><div id="ctl"><label id="opw">Photo<input id="op" type="range" min="5" max="100" value="50" aria-label="Photo opacity"></label><button id="peek">Hold to peek</button><button id="recentre">Re-centre</button><button id="cap" class="on">Take photo</button><button id="cclose">Close</button></div></div>
 <div id="ov" hidden><div class="box"><h2 id="ovT" style="margin-top:0"></h2><div id="ovB"></div><div class="acts"><button id="ovNo">Cancel</button><button id="ovYes" class="on">OK</button></div></div></div>
 <script>
 const COL=[['Yellow','#efd670','#3a2f06'],['Green','#62b774','#0e2b15'],['Brown','#885d41','#fff'],['Blue','#4f83ee','#fff'],['Pink','#e283ac','#3d1230'],['Black','#121827','#fff']];
 const KEY='snooker-scorer-v1';
 const $=id=>document.getElementById(id);
-let S,U=[];
+let S,U=[],PHOTO=null,stream=null,mode='';const PK='snooker-photo-v1';
+try{PHOTO=localStorage.getItem(PK)}catch(e){}
+const G={x:0,y:0,s:1},pts=new Map();let d0=0;
 function fresh(){return{reds:15,redsLeft:15,active:0,foulTo:1,cleared:0,pending:false,free:false,last:'New frame · 15 reds selected',hist:[],p:[{name:'Player 1',score:0,frames:0,brk:[]},{name:'Player 2',score:0,frames:0,brk:[]}]}}
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
 if(!S||!S.p)S=fresh();S.log=S.log||[];
@@ -142,7 +149,7 @@ function freeBall(){if(S.pending)return;if(inClear()){if(S.cleared>5)return;cons
 function foul(v){snap();const to=S.foulTo,o=1-to;S.p[to].score+=v;S.p[o].brk=[];S.active=to;S.foulTo=o;S.free=false;done('Foul · '+v+' to '+nm(to))}
 function setActive(i){if(i===S.active)return;snap();S.p[S.active].brk=[];S.active=i;S.foulTo=1-i;S.free=false;done('Turn · '+nm(i)+' at the table')}
 function frames(i,d){const f=S.p[i].frames+d;if(f<0)return;snap();S.p[i].frames=f;done(nm(i)+' · frames '+f)}
-function reset(n){S.reds=n;S.redsLeft=n;S.active=0;S.foulTo=1;S.cleared=0;S.pending=false;S.free=false;S.p.forEach(p=>{p.score=0;p.brk=[]});S.log=[];U=[];S.last='New frame · '+n+' reds selected'}
+function reset(n){S.reds=n;S.redsLeft=n;S.active=0;S.foulTo=1;S.cleared=0;S.pending=false;S.free=false;S.p.forEach(p=>{p.score=0;p.brk=[]});S.log=[];U=[];PHOTO=null;try{localStorage.removeItem(PK)}catch(e){}S.last='New frame · '+n+' reds selected'}
 function dirty(){return S.p[0].score+S.p[1].score>0}
 function undo(){if(!U.length)return;const keep=S.p.map(p=>p.name);S=JSON.parse(U.pop());S.p.forEach((p,i)=>p.name=keep[i]);save();render()}
 
@@ -173,7 +180,6 @@ function text(){
   $('sLead').textContent=a===b?'Level':nm(a>b?0:1);$('sDiff').textContent=d;
   $('sRed').textContent=S.redsLeft;$('sTab').textContent=tableLeft();
   $('lastT').textContent=S.last;
-  $('trT').textContent='The remaining colours now total '+(S.redsLeft>0||S.pending?27:tableLeft())+' points.';
 }
 function render(){
   document.querySelectorAll('.pl').forEach(el=>{
@@ -191,14 +197,34 @@ function render(){
   $('cols').innerHTML=COL.map((c,i)=>{const off=inClear()&&i<S.cleared;const v=i+2+(assumed?1:0);
     const lab=off?'Cleared':assumed?'Red assumed':S.pending?'Free colour':'True value';
     return '<button data-i="'+i+'" style="background:'+c[1]+';color:'+c[2]+'"'+(off?' disabled':'')+'>'+c[0]+'<b>+'+v+'</b><small>'+lab+'</small></button>'}).join('');
-  $('pills').innerHTML=COL.map((c,i)=>'<i style="background:'+((S.redsLeft>0||S.pending||i>=S.cleared)?c[1]:'#2b3b31')+'"></i>').join('');
   $('redOnly').disabled=$('redOff').disabled=S.redsLeft<1;
   const clr=inClear();
   $('free').disabled=S.pending||(clr&&S.cleared>5);
   $('freeS').textContent=S.pending?'Use a colour button':clr?'Counts as the '+(S.cleared<6?COL[S.cleared][0].toLowerCase()+' (+'+(S.cleared+2)+')':'ball on'):'Counts as a red (+1)';
+  $('snap').disabled=!!PHOTO;$('ref').disabled=$('delp').disabled=!PHOTO;
   $('undo').disabled=!U.length;
   text();
 }
+const dist=()=>{if(pts.size<2)return 0;const[a,b]=[...pts.values()];return Math.hypot(a[0]-b[0],a[1]-b[1])};
+const tf=()=>$('ghost').style.transform='translate('+G.x+'px,'+G.y+'px) scale('+G.s+')';
+async function openCam(m){
+  mode=m;G.x=G.y=0;G.s=1;tf();const g=$('ghost');g.hidden=m!=='ref';g.src=m==='ref'?PHOTO:'';$('op').value=50;g.style.opacity=.5;
+  $('opw').hidden=$('peek').hidden=$('recentre').hidden=m!=='ref';$('cap').hidden=m!=='snap';
+  $('cmsg').textContent=m==='ref'?'Line up each ball with its ghost. Drag and pinch the photo to align.':'Frame the whole table, then tap Take photo.';
+  $('cam').hidden=false;
+  try{if(!navigator.mediaDevices)throw 0;stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920}},audio:false});$('vid').srcObject=stream;await $('vid').play()}
+  catch(e){$('cmsg').textContent='Camera unavailable. Allow camera access for this site in Safari settings, and open the hosted page in Safari (previews may block the camera).'}}
+function closeCam(){if(stream)stream.getTracks().forEach(t=>t.stop());stream=null;$('vid').srcObject=null;$('cam').hidden=true}
+function capture(){const v=$('vid');if(!v.videoWidth)return;const w=Math.min(1280,v.videoWidth),h=Math.round(w*v.videoHeight/v.videoWidth),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(v,0,0,w,h);PHOTO=c.toDataURL('image/jpeg',.75);try{localStorage.setItem(PK,PHOTO)}catch(e){}closeCam();done('Snapshot of the table saved')}
+$('snap').onclick=()=>openCam('snap');$('ref').onclick=()=>PHOTO&&openCam('ref');
+$('delp').onclick=()=>ask('Delete the photo?','<p>You can take another one afterwards.</p>','Delete',()=>{PHOTO=null;try{localStorage.removeItem(PK)}catch(e){}done('Table photo deleted')});
+$('cap').onclick=capture;$('cclose').onclick=closeCam;$('recentre').onclick=()=>{G.x=G.y=0;G.s=1;tf()};
+$('op').oninput=e=>$('ghost').style.opacity=e.target.value/100;
+const pk=$('peek');pk.onpointerdown=()=>$('ghost').style.opacity=1;pk.onpointerup=pk.onpointerleave=pk.onpointercancel=()=>$('ghost').style.opacity=$('op').value/100;
+const gh=$('ghost');
+gh.onpointerdown=e=>{gh.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);d0=dist()};
+gh.onpointermove=e=>{const p=pts.get(e.pointerId);if(!p)return;if(pts.size===1){G.x+=e.clientX-p[0];G.y+=e.clientY-p[1]}pts.set(e.pointerId,[e.clientX,e.clientY]);if(pts.size===2){const d=dist();if(d0)G.s=Math.min(4,Math.max(.3,G.s*d/d0));d0=d}tf()};
+gh.onpointerup=gh.onpointercancel=e=>{pts.delete(e.pointerId);d0=dist()};
 build();render();
 </script>
 </body>
