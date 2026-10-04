@@ -75,7 +75,7 @@ h2{margin:6px 4px;font-size:22px}
 dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:24px;max-width:460px;width:calc(100% - 32px);padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 #ov li{padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
-#ov ul{list-style:none;padding:0;margin:10px 0 14px;max-height:50vh;overflow:auto}
+#ov .box{max-height:88vh;overflow:auto}#ov ul{list-style:none;padding:0;margin:10px 0 14px;max-height:50vh;overflow:auto}
 @media(max-width:520px){.cg button{min-height:88px}.cg b{font-size:28px}.pl{padding:10px;border-radius:22px}.nm{font-size:17px}.chip{padding:6px 8px;font-size:14px}.stats{grid-template-columns:repeat(2,1fr)}.top3{grid-template-columns:1fr 1fr}.top3 .bred{grid-column:1/-1;min-height:70px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -95,7 +95,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         <div class="st"><svg viewBox="0 0 24 24" stroke="#7fb0ff"><path d="M4 18h16l1-10-5 4-4-7-4 7-5-4z"/></svg><small>Lead</small><b id="sDiff"></b></div>
         <div class="st"><svg viewBox="0 0 24 24" stroke="#f0a33a"><path d="M4 20l1-4L16 5l3 3L8 19zM4 22h8"/></svg><small>On table</small><b id="sTab"></b></div>
       </div>
-      <div class="last" id="last"><div><small>Last action · tap for frame history</small><span id="lastT"></span></div><button id="undo">Undo</button></div>
+      <div class="last" id="last"><div><small>Last action · tap to review this frame</small><span id="lastT"></span></div><button id="undo">Undo</button></div>
     </section>
     <section>
       <h2>Pots</h2>
@@ -119,10 +119,10 @@ const $=id=>document.getElementById(id);
 let S,U=[];
 function fresh(){return{reds:15,redsLeft:15,active:0,foulTo:1,cleared:0,pending:false,free:false,last:'New frame · 15 reds selected',hist:[],p:[{name:'Player 1',score:0,frames:0,brk:[]},{name:'Player 2',score:0,frames:0,brk:[]}]}}
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){}
-if(!S||!S.p)S=fresh();
+if(!S||!S.p)S=fresh();S.log=S.log||[];
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function snap(){U.push(JSON.stringify(S));if(U.length>300)U.shift()}
-function done(t){S.last=t;save();render()}
+function done(t){S.last=t;S.log.push({t:t,a:S.p[0].score,b:S.p[1].score});save();render()}
 const nm=i=>S.p[i].name||('Player '+(i+1));
 function add(pts,balls){const P=S.p[S.active];P.score+=pts;P.brk.push(...balls)}
 function inClear(){return S.redsLeft===0&&!S.pending&&!S.free}
@@ -142,7 +142,7 @@ function freeBall(){if(S.pending)return;if(inClear()){if(S.cleared>5)return;cons
 function foul(v){snap();const to=S.foulTo,o=1-to;S.p[to].score+=v;S.p[o].brk=[];S.active=to;S.foulTo=o;S.free=false;done('Foul · '+v+' to '+nm(to))}
 function setActive(i){if(i===S.active)return;snap();S.p[S.active].brk=[];S.active=i;S.foulTo=1-i;S.free=false;done('Turn · '+nm(i)+' at the table')}
 function frames(i,d){const f=S.p[i].frames+d;if(f<0)return;snap();S.p[i].frames=f;done(nm(i)+' · frames '+f)}
-function reset(n){S.reds=n;S.redsLeft=n;S.active=0;S.foulTo=1;S.cleared=0;S.pending=false;S.free=false;S.p.forEach(p=>{p.score=0;p.brk=[]});U=[];S.last='New frame · '+n+' reds selected'}
+function reset(n){S.reds=n;S.redsLeft=n;S.active=0;S.foulTo=1;S.cleared=0;S.pending=false;S.free=false;S.p.forEach(p=>{p.score=0;p.brk=[]});S.log=[];U=[];S.last='New frame · '+n+' reds selected'}
 function dirty(){return S.p[0].score+S.p[1].score>0}
 function undo(){if(!U.length)return;const keep=S.p.map(p=>p.name);S=JSON.parse(U.pop());S.p.forEach((p,i)=>p.name=keep[i]);save();render()}
 
@@ -162,7 +162,7 @@ function build(){
   $('reset').onclick=()=>{const go=()=>{reset(S.reds);save();render()};dirty()?ask('Reset this frame?','<p>Scores go back to 0. Frame counts are kept.</p>','Reset',go):go()};
   $('newf').onclick=()=>{const go=()=>{if(dirty())S.hist.unshift({a:nm(0),b:nm(1),sa:S.p[0].score,sb:S.p[1].score});reset(S.reds);save();render()};dirty()?ask('Start a new frame?','<p>This frame ('+S.p[0].score+' – '+S.p[1].score+') is saved to history. Tap "+ Frame" first to credit the winner.</p>','New frame',go):go()};
   $('undo').onclick=e=>{e.stopPropagation();undo()};
-  $('last').onclick=()=>{const h=S.hist.length?S.hist.map(h=>'<li><span>'+esc(h.a)+' v '+esc(h.b)+'</span><b>'+h.sa+' – '+h.sb+'</b></li>').join(''):'<li>No frames saved yet. Tap New frame to save one.</li>';ask('Frame history','<ul>'+h+'</ul>')};
+  $('last').onclick=()=>{const n=S.log.length;let h=n?'<ul>'+S.log.slice().reverse().map((e,k)=>'<li><span>'+(n-k)+'. '+esc(e.t)+'</span><b>'+e.a+' – '+e.b+'</b></li>').join('')+'</ul>':'<p>Nothing scored yet this frame.</p>';if(S.hist.length)h+='<h3 style="margin:8px 0 0">Previous frames</h3><ul>'+S.hist.map(x=>'<li><span>'+esc(x.a)+' v '+esc(x.b)+'</span><b>'+x.sa+' – '+x.sb+'</b></li>').join('')+'</ul>';ask('This frame · '+S.p[0].score+' – '+S.p[1].score,h)};
   $('redOnly').onclick=redOnly;$('redOff').onclick=redOff;$('free').onclick=freeBall;
   $('ft0').onclick=()=>{S.foulTo=0;render()};$('ft1').onclick=()=>{S.foulTo=1;render()};
 }
