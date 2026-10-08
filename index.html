@@ -21,7 +21,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2
 .on{background:var(--gold)!important;color:var(--ink)!important;border-color:var(--gold)!important}
 .bar .sp{flex:1}
 .cols{display:grid;gap:12px}
-@media(min-width:820px){.cols{grid-template-columns:1.05fr 1fr;align-items:start}}
+@media(min-width:820px) and (orientation:landscape){.cols{grid-template-columns:1.05fr 1fr;align-items:start}}
 .players{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .pl{background:var(--card);border:1px solid var(--line);border-radius:28px;padding:14px;cursor:pointer;transition:background .15s}
 .pl.act{background:var(--gold);color:var(--ink);border-color:var(--gold)}
@@ -41,7 +41,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2
 .track{display:flex;height:16px;border-radius:9px;background:#3a4a41;overflow:hidden;margin:8px 0 10px;min-width:0}
 .act .track{background:#c9b468}
 .track i{flex:1 1 0;max-width:20px;min-width:3px;border-right:1px solid rgba(0,0,0,.35)}
-.btns{display:grid;grid-template-columns:56px 1fr;gap:8px}
+.btns{display:grid;grid-template-columns:44px 1fr;gap:6px}.btns button{min-height:34px;font-size:14px;border-radius:12px;padding:0 8px}.bar button{flex:1;min-width:110px}@media(orientation:portrait){.wrap,.cols,.cols>section{gap:8px!important}.cg button{min-height:84px}.cg b{font-size:28px;margin:2px 0}.fg button{min-height:64px}.fg b{font-size:26px}.top3 button{min-height:70px}.miss{min-height:52px;margin-bottom:6px}.st{padding:8px 10px}.st small{margin:2px 0}.pl{padding:12px}.camrow button{min-height:48px}h2{font-size:19px;margin:2px 4px}}
 .act .btns button{background:#d1bd72;color:var(--ink);border-color:#bfa95f}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .st{background:var(--card2);border-radius:20px;padding:12px;min-width:0}
@@ -86,10 +86,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 </head>
 <body>
 <div class="wrap">
-  <div class="bar">
-    <button class="n" data-r="6">6</button><button class="n" data-r="10">10</button><button class="n" data-r="15">15</button>
-    <button id="reset">Reset frame</button><span class="sp"></span><button id="newf" class="on">New frame</button>
-  </div>
+  
   <div class="cols">
     <section style="display:grid;gap:12px">
       <div class="players" id="players"></div>
@@ -99,7 +96,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
         <div class="st"><svg viewBox="0 0 24 24" stroke="#7fb0ff"><path d="M4 18h16l1-10-5 4-4-7-4 7-5-4z"/></svg><small>Lead</small><b id="sDiff"></b></div>
         <div class="st"><svg viewBox="0 0 24 24" stroke="#f0a33a"><path d="M4 20l1-4L16 5l3 3L8 19zM4 22h8"/></svg><small>On table</small><b id="sTab"></b></div>
       </div>
-      <div class="last" id="last"><div><small>Last action · tap to review this frame</small><span id="lastT"></span></div><button id="undo">Undo</button></div>
+      
     </section>
     <section>
       <h2>Pots</h2>
@@ -115,6 +112,9 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
       <div class="camrow"><button id="snap">📷 Snapshot</button><button id="ref">Replace balls</button><button id="delp">Delete photo</button></div>
     </section>
   </div>
+  <div class="last" id="last"><div><small>Last action · tap to review this frame</small><span id="lastT"></span></div><button id="undo">Undo</button></div>
+  <div class="bar"><button id="reset">Reset frame</button><button id="newf" class="on">New frame</button><button id="settings" aria-label="Settings">⚙ Settings</button></div>
+
 </div>
 <div id="cam" hidden><div id="stage"><video id="vid" playsinline muted autoplay></video><img id="ghost" alt="Saved table photo" hidden></div><div id="cmsg"></div><div id="ctl"><label id="opw">Photo<input id="op" type="range" min="5" max="100" value="50" aria-label="Photo opacity"></label><button id="peek">Hold to peek</button><button id="amode">Drag/pinch: View</button><button id="flip">Flip camera</button><button id="recentre">Re-centre</button><button id="cap" class="on">Take photo</button><button id="cclose">Close</button></div></div>
 <div id="ov" hidden><div class="box"><h2 id="ovT" style="margin-top:0"></h2><div id="ovB"></div><div class="acts"><button id="ovNo">Cancel</button><button id="ovYes" class="on">OK</button></div></div></div>
@@ -167,7 +167,8 @@ function build(){
   $('fouls').innerHTML=[4,5,6,7].map(v=>'<button data-v="'+v+'"><b>+'+v+'</b>Foul</button>').join('');
   $('fouls').onclick=e=>{const b=e.target.closest('button');if(b)foul(+b.dataset.v)};
   $('cols').onclick=e=>{const b=e.target.closest('button');if(b)colour(+b.dataset.i)};
-  document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const n=+b.dataset.r;if(n===S.reds&&!dirty())return;const go=()=>{reset(n);save();render()};dirty()?ask('Change to '+n+' reds?','<p>This resets the current frame. Frame counts are kept.</p>','Change',go):go()});
+  $('settings').onclick=()=>{ask('Settings','<p style="margin:0 0 8px;color:var(--mute);font-weight:700">Reds in the frame</p><div class="acts" style="margin-bottom:12px">'+[6,10,15].map(n=>'<button data-r="'+n+'" class="'+(n===S.reds?'on':'')+'">'+n+'</button>').join('')+'</div>',null);
+    $('ovB').querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{const n=+b.dataset.r;if(n===S.reds&&!dirty()){$('ov').hidden=true;return}const go=()=>{reset(n);save();render()};dirty()?ask('Change to '+n+' reds?','<p>This resets the current frame. Frame counts are kept.</p>','Change',go):(go(),$('ov').hidden=true)})};
   $('reset').onclick=()=>{const go=()=>{reset(S.reds);save();render()};dirty()?ask('Reset this frame?','<p>Scores go back to 0. Frame counts are kept.</p>','Reset',go):go()};
   $('newf').onclick=()=>{const go=()=>{if(dirty())S.hist.unshift({a:nm(0),b:nm(1),sa:S.p[0].score,sb:S.p[1].score});reset(S.reds);save();render()};dirty()?ask('Start a new frame?','<p>This frame ('+S.p[0].score+' – '+S.p[1].score+') is saved to history. Tap "+ Frame" first to credit the winner.</p>','New frame',go):go()};
   $('undo').onclick=e=>{e.stopPropagation();undo()};
@@ -192,7 +193,6 @@ function render(){
     el.querySelector('.chip').textContent='🏅 '+P.frames+(P.frames===1?' frame':' frames');
     el.querySelector('.brk b').textContent=P.brk.reduce((t,x)=>t+(x==='r'?1:x+2),0);
     el.querySelector('.track').innerHTML=P.brk.map(x=>'<i style="background:'+(x==='r'?'#ab2d27':COL[x][1])+'"></i>').join('')});
-  document.querySelectorAll('[data-r]').forEach(b=>b.classList.toggle('on',+b.dataset.r===S.reds));
   $('ft0').classList.toggle('on',S.foulTo===0);$('ft1').classList.toggle('on',S.foulTo===1);
   $('ft0').textContent=nm(0);$('ft1').textContent=nm(1);
   const assumed=S.redsLeft>0&&!S.free;
