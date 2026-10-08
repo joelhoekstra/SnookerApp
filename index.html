@@ -30,7 +30,7 @@ button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2
 .act .av{background:#6b6a3c}
 .av svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2}
 .nm{flex:1;min-width:0;background:transparent;border:0;border-bottom:1px dashed transparent;color:inherit;font:700 20px/1.2 inherit;padding:4px 0;border-radius:0;user-select:text;-webkit-user-select:text}
-.nm:focus{border-bottom-color:currentColor;outline:none}
+.nm[readonly]{pointer-events:none}.ed{min-height:40px;width:40px;padding:0;flex:none;border-radius:50%;background:transparent;border:1px solid currentColor;opacity:.65;font-size:17px}.miss{width:100%;min-height:60px;margin-bottom:8px;background:var(--card);font-size:18px}.nm:focus{border-bottom-color:currentColor;outline:none}
 .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 0}
 .score{font-size:clamp(48px,9vw,76px);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
 .chip{background:#2a3b30;color:var(--gold);border-radius:999px;padding:8px 12px;font-weight:700;white-space:nowrap}
@@ -103,8 +103,9 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
     </section>
     <section>
       <h2>Pots</h2>
+      <button id="miss" class="miss"></button>
       <div class="top3">
-        <button class="bred" id="redOnly">Red only<small>Add 1 point when no colour follows</small></button>
+        <button class="bred" id="redOnly">Red only<small>+1 and switches player</small></button>
         <button class="boff" id="redOff">Take red off<small>Red drops during a foul</small></button>
         <button class="bfree" id="free">Free ball<small id="freeS"></small></button>
       </div>
@@ -143,7 +144,7 @@ function colour(i){
   if(S.redsLeft>0){S.redsLeft--;add(v+1,['r',i]);return done(nm(S.active)+' · red + '+n+' (+'+(v+1)+')')}
   if(S.pending){add(v,[i]);S.pending=false;return done(nm(S.active)+' · free colour '+n+' (+'+v+')')}
   add(v,[i]);S.cleared=i+1;done(nm(S.active)+' · '+n+' (+'+v+')')}
-function redOnly(){if(S.redsLeft<1)return;snap();S.redsLeft--;add(1,['r']);if(S.redsLeft===0)S.pending=true;done(nm(S.active)+' · red only (+1)')}
+function redOnly(){if(S.redsLeft<1)return;snap();const who=nm(S.active);S.redsLeft--;add(1,['r']);if(S.redsLeft===0)S.pending=true;S.p[S.active].brk=[];S.active=1-S.active;S.foulTo=1-S.active;S.free=false;done(who+' · red only (+1), turn to '+nm(S.active))}
 function redOff(){if(S.redsLeft<1)return;snap();S.redsLeft--;if(S.redsLeft===0)S.pending=true;done('Red taken off the table')}
 function freeBall(){if(S.pending)return;if(inClear()){if(S.cleared>5)return;const k=S.cleared,v=k+2;snap();add(v,[k]);return done(nm(S.active)+' · free ball as '+COL[k][0]+' (+'+v+')')}snap();add(1,['r']);S.free=true;done(nm(S.active)+' · free ball (+1), now pick a colour')}
 function foul(v){snap();const to=S.foulTo,o=1-to;S.p[to].score+=v;S.p[o].brk=[];S.active=to;S.foulTo=o;S.free=false;done('Foul · '+v+' to '+nm(to))}
@@ -154,11 +155,12 @@ function dirty(){return S.p[0].score+S.p[1].score>0}
 function undo(){if(!U.length)return;const keep=S.p.map(p=>p.name);S=JSON.parse(U.pop());S.p.forEach((p,i)=>p.name=keep[i]);save();render()}
 
 function build(){
-  $('players').innerHTML=[0,1].map(i=>'<div class="pl" data-i="'+i+'"><div class="top"><span class="av"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 15-5 16 0"/></svg></span><input class="nm" aria-label="Player '+(i+1)+' name" maxlength="20" autocomplete="off" autocapitalize="words"></div><div class="row"><span class="score"></span><span class="chip"></span></div><div class="brk"><span>Current break</span><b></b></div><div class="track"></div><div class="btns"><button data-f="-1" aria-label="Remove a frame">−</button><button data-f="1">+ Frame</button></div></div>').join('');
+  $('players').innerHTML=[0,1].map(i=>'<div class="pl" data-i="'+i+'"><div class="top"><span class="av"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-5 15-5 16 0"/></svg></span><input class="nm" readonly aria-label="Player '+(i+1)+' name" maxlength="20" autocomplete="off" autocapitalize="words"><button class="ed" aria-label="Edit player '+(i+1)+' name">✎</button></div><div class="row"><span class="score"></span><span class="chip"></span></div><div class="brk"><span>Current break</span><b></b></div><div class="track"></div><div class="btns"><button data-f="-1" aria-label="Remove a frame">−</button><button data-f="1">+ Frame</button></div></div>').join('');
   document.querySelectorAll('.pl').forEach(el=>{
     const i=+el.dataset.i,inp=el.querySelector('.nm');
     el.addEventListener('click',e=>{if(e.target.closest('button')||e.target===inp)return;setActive(i)});
-    inp.addEventListener('focus',()=>{if(S.active!==i)setActive(i)});
+    el.querySelector('.ed').onclick=e=>{e.stopPropagation();inp.readOnly=false;inp.focus();inp.select()};
+    inp.addEventListener('blur',()=>{inp.readOnly=true;if(!S.p[i].name.trim()){S.p[i].name='Player '+(i+1);save();render()}});
     inp.addEventListener('input',()=>{S.p[i].name=inp.value;save();text()});
     inp.addEventListener('keydown',e=>{if(e.key==='Enter')inp.blur()});
     el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>frames(i,+b.dataset.f))});
@@ -170,7 +172,7 @@ function build(){
   $('newf').onclick=()=>{const go=()=>{if(dirty())S.hist.unshift({a:nm(0),b:nm(1),sa:S.p[0].score,sb:S.p[1].score});reset(S.reds);save();render()};dirty()?ask('Start a new frame?','<p>This frame ('+S.p[0].score+' – '+S.p[1].score+') is saved to history. Tap "+ Frame" first to credit the winner.</p>','New frame',go):go()};
   $('undo').onclick=e=>{e.stopPropagation();undo()};
   $('last').onclick=()=>{const n=S.log.length;let h=n?'<ul>'+S.log.slice().reverse().map((e,k)=>'<li><span>'+(n-k)+'. '+esc(e.t)+'</span><b>'+e.a+' – '+e.b+'</b></li>').join('')+'</ul>':'<p>Nothing scored yet this frame.</p>';if(S.hist.length)h+='<h3 style="margin:8px 0 0">Previous frames</h3><ul>'+S.hist.map(x=>'<li><span>'+esc(x.a)+' v '+esc(x.b)+'</span><b>'+x.sa+' – '+x.sb+'</b></li>').join('')+'</ul>';ask('This frame · '+S.p[0].score+' – '+S.p[1].score,h)};
-  $('redOnly').onclick=redOnly;$('redOff').onclick=redOff;$('free').onclick=freeBall;
+  $('miss').onclick=()=>setActive(1-S.active);$('redOnly').onclick=redOnly;$('redOff').onclick=redOff;$('free').onclick=freeBall;
   $('ft0').onclick=()=>{S.foulTo=0;render()};$('ft1').onclick=()=>{S.foulTo=1;render()};
 }
 function ask(t,body,yes,cb){$('ovT').textContent=t;$('ovB').innerHTML=body;$('ovYes').hidden=!yes;$('ovYes').textContent=yes||'';$('ovNo').textContent=yes?'Cancel':'Close';$('ov').hidden=false;$('ovYes').onclick=()=>{$('ov').hidden=true;cb&&cb()};$('ovNo').onclick=()=>{$('ov').hidden=true}}
@@ -201,6 +203,7 @@ function render(){
   const clr=inClear();
   $('free').disabled=S.pending||(clr&&S.cleared>5);
   $('freeS').textContent=S.pending?'Use a colour button':clr?'Counts as the '+(S.cleared<6?COL[S.cleared][0].toLowerCase()+' (+'+(S.cleared+2)+')':'ball on'):'Counts as a red (+1)';
+  $('miss').textContent='Miss · switch to '+nm(1-S.active);
   $('snap').disabled=!!PHOTO;$('ref').disabled=$('delp').disabled=!PHOTO;
   $('undo').disabled=!U.length;
   text();
