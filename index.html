@@ -77,7 +77,7 @@ h2{margin:6px 4px;font-size:22px}
 #ctl{position:absolute;left:0;right:0;bottom:0;padding:14px max(12px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.8));display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center}
 #ctl label{flex:1 1 180px;display:flex;gap:8px;align-items:center;font-weight:700}#ctl input{flex:1;min-width:100px}
 .camrow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.camrow button{min-height:56px;background:var(--card)}
-#ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:grid;place-items:center;padding:16px;z-index:9}#ov[hidden]{display:none}.box{background:var(--card);border:1px solid var(--line);border-radius:24px;max-width:460px;width:100%;padding:18px}.acts{display:flex;gap:8px}.acts button{flex:1}
+.hdr{display:flex;justify-content:space-between;align-items:center;padding:0 4px}.hdr span{font-weight:800;color:var(--mute);letter-spacing:.04em}.hdr button{width:40px;min-height:40px;padding:0;border-radius:50%;font-size:20px}#ov details{border-bottom:1px solid var(--line);padding:8px 0}#ov summary{font-weight:700;min-height:32px;cursor:pointer;font-size:17px}#ov details p{margin:6px 0 8px;color:#d6e0d8}#ov{position:fixed;inset:0;background:rgba(0,0,0,.65);display:grid;place-items:center;padding:16px;z-index:9}#ov[hidden]{display:none}.box{background:var(--card);border:1px solid var(--line);border-radius:24px;max-width:460px;width:100%;padding:18px}.acts{display:flex;gap:8px}.acts button{flex:1}
 dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:24px;max-width:460px;width:calc(100% - 32px);padding:18px}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 #ov li{padding:8px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px}
@@ -88,6 +88,7 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 </head>
 <body>
 <div class="wrap">
+  <div class="hdr"><span>Snooker scorer</span><button id="faq" aria-label="Help and rules">?</button></div>
   
   <div class="cols">
     <section style="display:grid;gap:12px">
@@ -124,6 +125,19 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 const COL=[['Yellow','#efd670','#3a2f06'],['Green','#62b774','#0e2b15'],['Brown','#885d41','#fff'],['Blue','#4f83ee','#fff'],['Pink','#e283ac','#3d1230'],['Black','#121827','#fff']];
 const KEY='snooker-scorer-v1';
 const $=id=>document.getElementById(id);
+const FAQ=`<details open><summary>The basics</summary><p>Two players take turns. On your turn you keep scoring until you miss or foul. The player with the most points when the balls run out wins the frame.</p><p>Each turn alternates: pot a red (1 point), then pot any colour (2 to 7 points), then another red, then another colour, and so on. The colour goes back on the table each time while there are still reds.</p></details>
+<details><summary>What are the balls worth?</summary><p>Red 1, Yellow 2, Green 3, Brown 4, Blue 5, Pink 6, Black 7. A full frame has 15 reds (some games use 6 or 10, set under Settings).</p></details>
+<details><summary>Why do the colour buttons say +3, +4, +5...?</summary><p>While reds are on the table, a colour can only be potted straight after a red. So tapping a colour records both: the red (1) plus the colour. Yellow becomes +3, green +4, brown +5, blue +6, pink +7 and black +8, and one red is taken off the count. This is the "Red assumed" label.</p></details>
+<details><summary>What changes when the reds are gone?</summary><p>The colours go back to their true values (yellow +2 up to black +7) and are potted in order: yellow, green, brown, blue, pink, black. Each one stays off the table once potted, and the button greys out as Cleared. The frame ends when the black is potted.</p><p>Straight after the last red, the player gets one free choice of any colour. The app scores that at its true value.</p></details>
+<details><summary>Red only</summary><p>Use this when a player pots a red but then fails to pot a colour. It adds 1 point, takes a red off, and passes the turn to the other player.</p></details>
+<details><summary>Miss, and whose turn it is</summary><p>The highlighted player card is the one at the table. When the player misses, tap Miss to switch to the other player. Tapping a player card does the same.</p></details>
+<details><summary>Fouls</summary><p>A foul is a rule break, for example hitting the wrong ball first or potting the white. The other player gets points, from 4 up to 7 depending on the balls involved. Pick who receives the points with the Award to buttons, then tap the foul value. The turn then goes to that player.</p></details>
+<details><summary>Take red off</summary><p>Use this when a red falls in during a foul. The red is removed from the table and the count goes down by one, but nobody scores for it.</p></details>
+<details><summary>Free ball</summary><p>After a foul, if the next player cannot hit the ball they must play directly (they are snookered), they may be given a free ball. It counts as the ball "on". With reds on the table that is a red worth 1, so tap Free ball and then the colour potted next. With only colours left it is worth the colour due, for example 3 if green is next.</p></details>
+<details><summary>Reds left, Leader, Lead and On table</summary><p>Reds left is how many reds remain. Leader and Lead show who is ahead and by how much. On table is the maximum number of points still available. If the lead is bigger than that, the player behind can only win by getting the other player to foul.</p></details>
+<details><summary>Frames, history and undo</summary><p>A match is made of frames. Tap + Frame on the winner's card to add one to their frame count. New frame clears the table for the next frame and saves the finished one to history. Tap the last action box at the bottom to review every score entered this frame. Undo steps back one action at a time.</p></details>
+<details><summary>Replacing balls with the camera</summary><p>Snapshot saves a photo of the table. After a foul, Replace balls shows the live camera with the photo faded over it so you can put each ball back on its ghost. Drag the opacity slider to fade it, pinch to zoom.</p></details>
+<details><summary>Where is my data stored?</summary><p>Only on this device, in this browser. Nothing is uploaded. Other devices have their own separate games.</p></details>`;
 let FACE='user',PFACE=null,S,U=[],PHOTO=null,stream=null,mode='';const PK='snooker-photo-v1';
 try{PHOTO=localStorage.getItem(PK);PFACE=localStorage.getItem(PK+'f')}catch(e){}
 const G={x:0,y:0,s:1},V={x:0,y:0,s:1},pts=new Map();let d0=0,AM=false;
@@ -210,6 +224,7 @@ function render(){
   $('undo').disabled=!U.length;
   text();
 }
+$('faq').onclick=()=>ask('How it works',FAQ,null);
 const dist=()=>{if(pts.size<2)return 0;const[a,b]=[...pts.values()];return Math.hypot(a[0]-b[0],a[1]-b[1])};
 const T=o=>'translate('+o.x+'px,'+o.y+'px) scale('+o.s+')';
 const tf=()=>{$('ghost').style.transform=T(G);$('stage').style.transform=T(V);$('amode').textContent='Drag/pinch: '+(AM?'Photo':'View')};
